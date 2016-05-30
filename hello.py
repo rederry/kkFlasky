@@ -3,17 +3,31 @@ from flask.ext.script import Manager
 from flask.ext.bootstrap import Bootstrap
 from flask.ext.moment import Moment
 from datetime import datetime
+from flask.ext.wtf import Form
+from wtforms import StringField, SubmitField
+from wtforms.validators import Required
+
+#web form class
+class NameForm(Form):
+    name = StringField('What is your name?', validators=[Required()])
+    submit = SubmitField('Submit')
 
 app = Flask(__name__)
 manager = Manager(app)
 bootstrap = Bootstrap(app)
 moment = Moment(app)
+app.config['SECRET_KEY'] = 'hard to guess string'
 
 #home目录路由
-@app.route('/')
+@app.route('/', methods=['GET','POST'])
 def index():
     user_agent = request.headers.get('User-Agent')
-    return render_template('index.html',user_agent=user_agent,current_time=datetime.utcnow())
+    name = None
+    form = NameForm()
+    if form.validate_on_submit():
+        name = form.name.data
+        form.name.data = ''
+    return render_template('index.html',name=name,form=form,user_agent=user_agent,current_time=datetime.utcnow())
 
 #用户页面路由
 @app.route('/user/<name>')
