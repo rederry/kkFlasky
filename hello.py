@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, session, redirect, url_for, flash
 from flask.ext.script import Manager
 from flask.ext.bootstrap import Bootstrap
 from flask.ext.moment import Moment
@@ -22,12 +22,14 @@ app.config['SECRET_KEY'] = 'hard to guess string'
 @app.route('/', methods=['GET','POST'])
 def index():
     user_agent = request.headers.get('User-Agent')
-    name = None
     form = NameForm()
     if form.validate_on_submit():
-        name = form.name.data
-        form.name.data = ''
-    return render_template('index.html',name=name,form=form,user_agent=user_agent,current_time=datetime.utcnow())
+        old_name = session.get('name')
+        if old_name is not None and old_name != form.name.data:
+            flash('Looks like you have changed your name!')
+        session['name'] = form.name.data
+        return redirect(url_for('index'))
+    return render_template('index.html',name=session.get('name'),form=form,user_agent=user_agent,current_time=datetime.utcnow())
 
 #用户页面路由
 @app.route('/user/<name>')
