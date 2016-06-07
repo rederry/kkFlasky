@@ -3,6 +3,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin, AnonymousUserMixin
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import current_app
+from datetime import datetime
 
 
 # 权限常量
@@ -57,6 +58,11 @@ class User(UserMixin, db.Model):
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
     password_hash = db.Column(db.String(128))
     confirmed = db.Column(db.Boolean, default=False)  # 注册确认
+    name = db.Column(db.String(64))
+    location = db.Column(db.String(64))
+    about_me = db.Column(db.Text())
+    member_since = db.Column(db.DateTime(), default=datetime.utcnow)
+    last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
 
     # 构造时赋予角色
     def __init__(self, **kwargs):
@@ -67,10 +73,20 @@ class User(UserMixin, db.Model):
             if self.role is None:
                 self.role = Role.query.filter_by(default=True).first()
 
+    # 刷新新用户最后访问时间
+    def ping(self):
+        self.last_seen = datetime.utcnow()
+        db.session.add(self)
+
     # 角色认证
     def can(self, permissions):
         return self.role is not None and (self.role.permissions & permissions) == permissions
 
+    # 是否为管理员
+    def is_administrator(self):
+        return self.can(Permission.ADMINISTER)
+
+    # 密码设置
     @property
     def password(self):
         raise AttributeError('password is not a readable attribute')
