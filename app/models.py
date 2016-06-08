@@ -2,12 +2,15 @@ from . import db, login_manager
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin, AnonymousUserMixin
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
-from flask import current_app
+from flask import current_app, request
 from datetime import datetime
+import hashlib
 
 
-# 权限常量
 class Permission:
+    """
+    权限常量Class
+    """
     FOLLOW = 0x01
     COMMENT = 0x02
     WRITE_ARTICLES = 0x04
@@ -15,8 +18,10 @@ class Permission:
     ADMINISTER = 0x80
 
 
-# 角色数据库模型
 class Role(db.Model):
+    """
+    角色数据库模型
+    """
     __tablename__ = 'roles'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), unique=True)
@@ -49,8 +54,10 @@ class Role(db.Model):
         return '<Role %r>' % self.name
 
 
-# 用户数据库模型
 class User(UserMixin, db.Model):
+    """
+    用户数据库模型Class
+    """
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(64), unique=True, index=True)
@@ -133,6 +140,22 @@ class User(UserMixin, db.Model):
         self.password = new_password
         db.session.add(self)
         return True
+
+    def gravatar(self, size=100, default='identicon', rating='g'):
+        """
+        Gravatar头像模型
+        :param size: 头像大小
+        :param default:
+        :param rating: 头像评级
+        :return: 头像网址
+        """
+        if request.is_secure:
+            url = 'http://secure.gravatar.com/avatar'
+        else:
+            url = 'http://gravatar.com/avatar'
+        hash = hashlib.md5(self.email.encode('utf-8')).hexdigest()
+        return '{url}/{hash}?s={size}&d={default}&r={rating}'.format(
+            url=url, hash=hash, size=size, default=default, rating=rating)
 
 
 class AnonymousUser(AnonymousUserMixin):
