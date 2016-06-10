@@ -54,3 +54,9 @@ class EditProfileAdminForm(Form):
             raise ValidationError('Username already in use.')
 
 
+class PostForm(Form):
+    """
+    博客文章
+    """
+    body = TextAreaField("What's on your mind?", validators=[Required()])
+    submit = SubmitField('Submit')
