@@ -28,3 +28,8 @@
 <p>That was {{ moment(current_time).fromNow(refresh=True) }}</p>
 <p>Your browser is {{ user_agent }}</p>
 {% endblock %}
+
+{% block scripts %}
+{{ super }}
+{{ pagedown.include_pagedown() }}
+{% endblock %}
