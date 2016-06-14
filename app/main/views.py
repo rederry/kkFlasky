@@ -1,4 +1,4 @@
-from flask import render_template, redirect, url_for, request, abort, flash, current_app
+from flask import render_template, redirect, url_for, request, abort, flash, current_app, make_response
 from datetime import datetime
 from . import main
 from .forms import EditProfileForm, EditProfileAdminForm, PostForm
@@ -7,7 +7,7 @@ from ..models import User, Role, Post, Permission
 from flask_login import login_required, current_user, UserMixin
 from ..decorators import admin_required, permission_required
 
-# 主页
+
 @main.route('/', methods=['GET', 'POST'])
 def index():
     """
@@ -20,10 +20,10 @@ def index():
         post = Post(body=form.body.data, author=current_user._get_current_object())
         db.session.add(post)
         return redirect(url_for('.index'))
-    # 显示分页posts
+    # 显示分页的全部posts或者关注用户的posts
     show_followed = False
     if current_user.is_authenticated:
-        show_followed = bool(request.cookies.get('show_followed', ''))
+        show_followed = bool(request.cookies.get('show_followed', ''))  # show-followed以字典形式存储在cookies中
     if show_followed:
         query = current_user.followed_posts
     else:
@@ -39,6 +39,23 @@ def index():
                            pagination=pagination,
                            current_time=datetime.utcnow(),
                            user_agent=request.headers.get('User-Agent'))
+
+
+# cookie
+@main.route('/all')
+@login_required
+def show_all():
+    resp = make_response(redirect(url_for('.index')))
+    resp.set_cookie('show_followed', '', max_age=30*24*60*60)
+    return resp
+
+
+@main.route('/followed')
+@login_required
+def show_followed():
+    resp = make_response(redirect(url_for('.index')))
+    resp.set_cookie('show_followed', '1', max_age=30*24*60*60)
+    return resp
 
 
 @main.route('/user/<username>')
