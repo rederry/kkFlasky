@@ -102,7 +102,7 @@ class User(UserMixin, db.Model):
 
     def __init__(self, **kwargs):
         """
-        构造时赋予角色,和头像hash
+        构造时赋予角色和头像hash
         :param kwargs:
         """
         super(User, self).__init__(**kwargs)
@@ -114,6 +114,8 @@ class User(UserMixin, db.Model):
         # 缓存头像hash
         if self.email is not None and self.avatar_hash is None:
             self.avatar_hash = hashlib.md5(self.email.encode('utf-8')).hexdigest()
+
+        self.follow(self)  # 用户注册时默认关注自己
 
     # 刷新新用户最后访问时间
     def ping(self):
@@ -189,33 +191,6 @@ class User(UserMixin, db.Model):
         return '{url}/{hash}?s={size}&d={default}&r={rating}'.format(
             url=url, hash=hash, size=size, default=default, rating=rating)
 
-    @staticmethod
-    def generate_fake(count=100):
-        """
-        生成虚拟用户
-        :param count:用户数量
-        :return:
-        """
-        from sqlalchemy.exc import IntegrityError
-        from random import seed
-        import forgery_py
-
-        seed()
-        for i in range(count):
-            u = User(email=forgery_py.internet.email_address(),
-                     username=forgery_py.internet.user_name(True),
-                     password=forgery_py.lorem_ipsum.word(),
-                     confirmed=True,
-                     name=forgery_py.name.full_name(),
-                     location=forgery_py.address.city(),
-                     about_me=forgery_py.lorem_ipsum.sentence(),
-                     member_since=forgery_py.date.date(True))
-            db.session.add(u)
-            try:  # 防止生成的用户名或者email重复
-                db.session.commit()
-            except IntegrityError:
-                db.session.rollback()
-
     def follow(self, user):
         if not self.is_following(user):
             f = Follow(followed=user)
@@ -244,6 +219,41 @@ class User(UserMixin, db.Model):
         :return:
         """
         return Post.query.join(Follow, Follow.followed_id == Post.author_id).filter(Follow.follower_id == self.id)
+
+    @staticmethod
+    def generate_fake(count=100):
+        """
+        生成虚拟用户
+        :param count:用户数量
+        :return:
+        """
+        from sqlalchemy.exc import IntegrityError
+        from random import seed
+        import forgery_py
+
+        seed()
+        for i in range(count):
+            u = User(email=forgery_py.internet.email_address(),
+                     username=forgery_py.internet.user_name(True),
+                     password=forgery_py.lorem_ipsum.word(),
+                     confirmed=True,
+                     name=forgery_py.name.full_name(),
+                     location=forgery_py.address.city(),
+                     about_me=forgery_py.lorem_ipsum.sentence(),
+                     member_since=forgery_py.date.date(True))
+            db.session.add(u)
+            try:  # 防止生成的用户名或者email重复
+                db.session.commit()
+            except IntegrityError:
+                db.session.rollback()
+
+    @staticmethod
+    def add_self_follows():
+        for user in User.query.all():
+            if not user.is_following(user):
+                user.follow(user)
+                db.session.add(user)
+                db.session.commit()
 
     def __repr__(self):
         return '<User %r>' % self.username
