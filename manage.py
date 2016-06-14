@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import os
 from app import create_app, db
-from app.models import User, Role, Post
+from app.models import User, Role, Post, Follow
 from flask_migrate import Migrate, MigrateCommand
 from flask_script import Manager, Shell
 
@@ -16,7 +16,7 @@ def make_shell_context():
     让manager支持shell并导入默认设置
     :return:
     """
-    return dict(app=app, db=db, User=User, Role=Role, Post=Post)
+    return dict(app=app, db=db, User=User, Role=Role, Post=Post, Follow=Follow)
 
 manager.add_command("shell", Shell(make_context=make_shell_context))
 manager.add_command('db', MigrateCommand)
