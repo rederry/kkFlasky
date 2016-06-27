@@ -1,9 +1,9 @@
 from flask import render_template, redirect, url_for, request, abort, flash, current_app, make_response
 from datetime import datetime
 from . import main
-from .forms import EditProfileForm, EditProfileAdminForm, PostForm
+from .forms import EditProfileForm, EditProfileAdminForm, PostForm, CommentForm
 from .. import db
-from ..models import User, Role, Post, Permission
+from ..models import User, Role, Post, Permission, Comment
 from flask_login import login_required, current_user, UserMixin
 from ..decorators import admin_required, permission_required
 
@@ -14,8 +14,7 @@ def index():
     首页
     :return: 首页模版
     """
-    form = PostForm()
-    # 发布新文章
+    form = PostForm()  # 发布新文章
     if current_user.can(Permission.WRITE_ARTICLES) and form.validate_on_submit():
         post = Post(body=form.body.data, author=current_user._get_current_object())
         db.session.add(post)
@@ -46,7 +45,7 @@ def index():
 @login_required
 def show_all():
     resp = make_response(redirect(url_for('.index')))
-    resp.set_cookie('show_followed', '', max_age=30*24*60*60)
+    resp.set_cookie('show_followed', '', max_age=30*24*60*60)  # 在response中设置cookie和过期时间
     return resp
 
 
@@ -125,15 +124,32 @@ def edit_profile_admin(id):
     return render_template('edit_profile.html', form=form, user=user)
 
 
-@main.route('/post/<int:id>')
+@main.route('/post/<int:id>', methods=['GET', 'POST'])
 def post(id):
     """
     文章固定链接,用于分享
     :param id:
     :return:
     """
-    post = Post.query.get_or_404(id)
-    return render_template('post.html', posts=[post])
+    post = Post.query.get_or_404(id)  # 获取路径中id的post文章
+    form = CommentForm()  # 评论表单
+    if form.validate_on_submit():  # 如果评论表单中输入了评论可以提交
+        comment = Comment(body=form.body.data,
+                          post=post,
+                          author=current_user._get_current_object())  # 真的的User对象
+        db.session.add(comment)
+        flash('Your comment has been published.')
+        return redirect(url_for('.post', id=post.id, page=-1))  # 重新回到此路由,并刷新评论
+    page = request.args.get('page', 1, type=int)
+    if page == -1:  # 当page是-1时 计算评论的总量和总页数,得到真正要显示的页数
+        page = (post.comments.count() - 1) // current_app.config['FLASKY_COMMENTS_PER_PAGE'] + 1
+
+    pagination = post.comments.order_by(Comment.timestamp.asc()).paginate(  # 设置评论分页数据
+        page,
+        per_page=current_app.config['FLASKY_COMMENTS_PER_PAGE'],
+        error_out=False)
+    comments = pagination.items
+    return render_template('post.html', posts=[post], form=form, comments=comments, pagination=pagination)
 
 
 @main.route('/edit/<int:id>', methods=['GET', 'POST'])
@@ -155,6 +171,49 @@ def edit(id):
         return redirect(url_for('.post', id=post.id))
     form.body.data = post.body
     return render_template('edit_post.html', form=form)
+
+
+@main.route('/moderate')
+@login_required
+@permission_required(Permission.MODERATE_COMMENTS)
+def moderate():
+    """
+    管理评论
+    :return:
+    """
+    page = request.args.get('page', 1, type=int)
+    pagination = Comment.query.order_by(Comment.timestamp.desc()).paginate(
+        page, per_page=current_app.config['FLASKY_COMMENTS_PER_PAGE'],
+        error_out=False)
+    comments = pagination.items
+    return render_template('moderate.html', comments=comments, pagination=pagination, page=page)
+
+
+@main.route('/moderate/enable/<int:id>')
+@login_required
+@permission_required(Permission.MODERATE_COMMENTS)
+def moderate_enable(id):
+    """
+    会员评论管理开关
+    :param id: 会员id
+    :return: 重定向到评论管理页面
+    """
+    comment = Comment.query.get_or_404(id)
+    comment.disabled = False
+    db.session.add(comment)
+    return redirect(url_for('.moderate',
+                            page=request.args.get('page', 1, type=int)))
+
+
+@main.route('/moderate/disable/<int:id>')
+@login_required
+@permission_required(Permission.MODERATE_COMMENTS)
+def moderate_disable(id):
+    comment = Comment.query.get_or_404(id)
+    comment.disabled = True
+    db.session.add(comment)
+    return redirect(url_for('.moderate',
+                            page=request.args.get('page', 1, type=int)))
 
 
 @main.route('/follow/<username>')

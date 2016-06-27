@@ -2,11 +2,12 @@ from . import db, login_manager
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin, AnonymousUserMixin
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
-from flask import current_app, request
+from flask import current_app, request, url_for
 from datetime import datetime
 import hashlib
 import bleach
 from markdown import markdown
+from app.exceptions import ValidationError
 
 
 class Permission:
@@ -88,6 +89,7 @@ class User(UserMixin, db.Model):
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
     avatar_hash = db.Column(db.String(32))
     posts = db.relationship('Post', backref='author', lazy='dynamic')
+    comments = db.relationship('Comment', backref='author', lazy='dynamic')
     """两个一对多关系实现为多对多关系"""
     followed = db.relationship('Follow',
                                foreign_keys=[Follow.follower_id],
@@ -175,6 +177,30 @@ class User(UserMixin, db.Model):
         db.session.add(self)
         return True
 
+    def generate_auth_token(self, expiration):
+        """
+        支持基于令牌的认证
+        根据用户ID生成令牌
+        :param expiration:
+        :return:
+        """
+        s = Serializer(current_app.config['SECRET_KEY'], expires_in=expiration)
+        return s.dumps({'id': self.id}).decode('ascii')
+
+    @staticmethod
+    def verify_auth_token(token):
+        """
+        认证令牌
+        :param token: 用户id令牌
+        :return: 用户模型
+        """
+        s = Serializer(current_app.config['SECRET_KEY'])
+        try:
+            data = s.loads(token)
+        except:
+            return None
+        return User.query.get(data['id'])
+
     def gravatar(self, size=100, default='identicon', rating='g'):
         """
         Gravatar头像模型
@@ -220,6 +246,22 @@ class User(UserMixin, db.Model):
         """
         return Post.query.join(Follow, Follow.followed_id == Post.author_id).filter(Follow.follower_id == self.id)
 
+    def to_json(self):
+        """
+        将用户转化为Jason格式供api使用
+        :return: post的json
+        """
+        json_user = {
+            'url': url_for('api.get_post', id=self.id, _external=True),  # _external用于生成完整URL
+            'username': self.username,
+            'member_since': self.member_since,
+            'last_seen': self.last_seen,
+            'posts': url_for('api.get_posts', id=self.id, _external=True),
+            'followed_posts': url_for('api.get_user_followed_posts', id=self.id, _external=True),
+            'post_count': self.posts.count()
+        }
+        return json_user
+
     @staticmethod
     def generate_fake(count=100):
         """
@@ -247,7 +289,7 @@ class User(UserMixin, db.Model):
             except IntegrityError:
                 db.session.rollback()
 
-    @staticmethod
+    @staticmethod  # 辅助方法,让所有用户都关注自己
     def add_self_follows():
         for user in User.query.all():
             if not user.is_following(user):
@@ -257,6 +299,21 @@ class User(UserMixin, db.Model):
 
     def __repr__(self):
         return '<User %r>' % self.username
+
+
+class AnonymousUser(AnonymousUserMixin):
+    def can(self, permissions):
+        return False
+
+    def is_administrator(self):
+        return False
+
+login_manager.anonymous_user = AnonymousUser
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 
 class Post(db.Model):
@@ -269,6 +326,30 @@ class Post(db.Model):
     body_html = db.Column(db.Text)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    comments = db.relationship('Comment', backref='post', lazy='dynamic')
+
+    def to_json(self):
+        """
+        将文章转化为Jason格式供api使用
+        :return: post的json
+        """
+        json_post = {
+            'url': url_for('api.get_post', id=self.id, _external=True),  # _external用于生成完整URL
+            'body': self.body,
+            'body_html': self.body_html,
+            'timestamp': self.timestamp,
+            'author': url_for('api.get_user', id=self.author_id, _external=True),
+            'comments': url_for('api.get_post_comments', id=self.id, _external=True),
+            'comment_count': self.comments.count()
+        }
+        return json_post
+
+    @staticmethod
+    def from_json(json_post):
+        body = json_post.get('body')
+        if body is None or body == '':
+            raise ValidationError('post does not have a body')
+        return Post(body=body)
 
     @staticmethod
     def generate_fake(count=100):
@@ -310,14 +391,45 @@ class Post(db.Model):
 db.event.listen(Post.body, 'set', Post.on_changed_body)
 
 
-class AnonymousUser(AnonymousUserMixin):
-    def can(self, permissions):
-        return False
 
-    def is_administrator(self):
-        return False
+class Comment(db.Model):
+    __tablename__ = 'comments'
+    id = db.Column(db.Integer, primary_key=True)
+    body = db.Column(db.Text)
+    body_html = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    disabled = db.Column(db.Boolean)
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    post_id = db.Column(db.Integer, db.ForeignKey('posts.id'))
 
-login_manager.anonymous_user = AnonymousUser
+    @staticmethod  # 在修改body字段内容时触发,自动把Markdown文本转换成HTML
+    def on_changed_body(target, value, oldvalue, initiator):
+        allowed_tags = ['a', 'abbr', 'acronym', 'b', 'code', 'em', 'i', 'strong']
+        target.body_html = bleach.linkify(bleach.clean(markdown(value, output_format='html'),
+                                                       tags=allowed_tags,
+                                                       strip=True))
+
+    def to_json(self):
+        json_comment = {
+            'url': url_for('api.get_comment', id=self.id, _external=True),
+            'post': url_for('api.get_post', id=self.post_id, _external=True),
+            'body': self.body,
+            'body_html': self.body_html,
+            'timestamp': self.timestamp,
+            'author': url_for('api.get_user', id=self.author_id,
+                              _external=True),
+        }
+        return json_comment
+
+    @staticmethod
+    def from_json(json_comment):
+        body = json_comment.get('body')
+        if body is None or body == '':
+            raise ValidationError('comment does not have a body')
+        return Comment(body=body)
+
+# 监听评论的改变
+db.event.listen(Comment.body, 'set', Comment.on_changed_body)
 
 
 @login_manager.user_loader

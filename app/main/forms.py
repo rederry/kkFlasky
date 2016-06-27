@@ -39,6 +39,12 @@ class EditProfileAdminForm(Form):
     submit = SubmitField('Submit')
 
     def __init__(self, user, *args, **kwargs):
+        """
+
+        :param user:
+        :param args:
+        :param kwargs:
+        """
         super(EditProfileAdminForm, self).__init__(*args, **kwargs)
         self.role.choices = [(role.id, role.name)
                              for role in Role.query.order_by(Role.name).all()]
@@ -60,4 +66,9 @@ class PostForm(Form):
     发布博客文章表单
     """
     body = PageDownField("What's on your mind?", validators=[Required()])
+    submit = SubmitField('Submit')
+
+
+class CommentForm(Form):
+    body = StringField('Enter your comment', validators=[Required()])
     submit = SubmitField('Submit')
