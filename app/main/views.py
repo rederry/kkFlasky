@@ -282,3 +282,17 @@ def followed_by(username):
                            endpoint='.followed_by', pagination=pagination,
                            follows=follows)
 
+
+@main.route('/shutdown')
+def server_shutdown():
+    """
+    用于关闭服务器的路由
+    :return:
+    """
+    if not current_app.testing:
+        abort(404)
+    shutdown = request.environ.get('werkzeug.server.shutdown')
+    if not shutdown:
+        abort(500)
+    shutdown()
+    return 'Shutting down...'
