@@ -64,3 +64,14 @@ def profile(length=25, profile_dir=None):
 
 if __name__ == '__main__':
     manager.run()
+
+
+@manager.command
+def deploy():
+    # 部署操作
+    from flask_migrate import upgrade
+    from app.models import User, Role
+
+    upgrade()
+    Role.insert_roles()
+    User.add_self_follows()
