@@ -5,6 +5,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'hard to guess string'
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
+    SQLALCHEMY_RECORD_QUERIES = True  # 记下查询记录
     #SQLALCHEMY_TRACK_MODIFICATIONS = True
     MAIL_SERVER = 'smtp.sina.com'
     MAIL_PORT = 465
@@ -17,6 +18,7 @@ class Config:
     FLASKY_POSTS_PER_PAGE = 20
     FLASKY_COMMENTS_PER_PAGE = 10
     FLASKY_FOLLOWERS_PER_PAGE = 20
+    FLASKY_SLOW_DB_QUERY_TIME = 0.5
 
     @staticmethod
     def init_app(app):
