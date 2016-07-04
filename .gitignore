@@ -1,6 +1,6 @@
 *.sqlite
 .idea
-__pycache__
+__pyvcache__
 .DS_Store
 tmp
-
+*.pyc

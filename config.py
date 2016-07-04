@@ -27,13 +27,13 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = 'mysql://root:123456@127.0.0.1/flask'
+    SQLALCHEMY_DATABASE_URI = 'mysql://root:Oneday52.@127.0.0.1/flask'
 
 
 class TestingConfig(Config):
     TESTING = True
     WTF_CSRF_ENABLED = False
-    SQLALCHEMY_DATABASE_URI = 'mysql://root:123456@127.0.0.1/flask'
+    SQLALCHEMY_DATABASE_URI = 'mysql://root:Oneday52.@127.0.0.1/flask'
 
 
 class ProductionConfig(Config):
