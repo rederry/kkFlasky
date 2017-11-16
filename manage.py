@@ -4,7 +4,6 @@ from app import create_app, db
 from app.models import User, Role, Post, Follow
 from flask_migrate import Migrate, MigrateCommand
 from flask_script import Manager, Shell
-##import MySQLdb
 
 COV = None
 if os.environ.get('FLASKY_COVERAGE'):
@@ -21,7 +20,6 @@ migrate = Migrate(app, db)
 def make_shell_context():
     """
     让manager支持shell并导入默认设置
-    :return:
     """
     return dict(app=app, db=db, User=User, Role=Role, Post=Post, Follow=Follow)
 
@@ -56,23 +54,22 @@ def profile(length=25, profile_dir=None):
     """
     启动分析器
     :param length: 速度最慢的25个函数
-    :param profile_dir:
-    :return:
     """
     from werkzeug.contrib.profiler import ProfilerMiddleware
     app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[length], profile_dir=profile_dir)
     app.run()
 
-if __name__ == '__main__':
-    manager.run()
-
-
 @manager.command
 def deploy():
-    # 部署操作
+    """
+    Deploy operation
+    """
     from flask_migrate import upgrade
     from app.models import User, Role
 
     upgrade()
     Role.insert_roles()
     User.add_self_follows()
+
+if __name__ == '__main__':
+    manager.run()

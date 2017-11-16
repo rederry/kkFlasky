@@ -4,3 +4,4 @@ __pyvcache__
 .DS_Store
 tmp
 *.pyc
+venv
