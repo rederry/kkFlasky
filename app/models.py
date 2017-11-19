@@ -381,12 +381,16 @@ class Post(db.Model):
         :param initiator:
         :return:
         """
+        # 允许的tags和属性
         allowed_tags = ['a', 'abbr', 'acronym', 'b', 'blockquote', 'code',
                         'em', 'i', 'li', 'ol', 'pre', 'strong', 'ul',
-                        'h1', 'h2', 'h3', 'p']
+                        'h1', 'h2', 'h3', 'p', 'img', 'video', 'div', 'iframe', 'p', 'br', 'span', 'hr', 'src', 'class']
+        allowed_attrs = {'*': ['class'],
+                         'a': ['href', 'rel'],
+                         'img': ['src', 'alt']}
         target.body_html = bleach.linkify(bleach.clean(
             markdown(value, output_format='html'),
-            tags=allowed_tags, strip=True))
+            tags=allowed_tags, strip=True, attributes=allowed_attrs))
 # 随时监听
 db.event.listen(Post.body, 'set', Post.on_changed_body)
 
