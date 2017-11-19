@@ -16,7 +16,7 @@ def login():
         if user is not None and user.verify_password(form.password.data):
             login_user(user, form.remember_me.data)
             return redirect(request.args.get('next') or url_for('main.index'))
-        flash('Invalid username or password.')
+        flash('账号或密码不正确')
     return render_template('auth/login.html', form=form)
 
 
@@ -24,7 +24,7 @@ def login():
 @login_required
 def logout():
     logout_user()
-    flash('You have been logged out')
+    flash('你已经退出登录')
     return redirect(url_for('main.index'))
 
 
@@ -42,7 +42,7 @@ def register():
         token = user.generate_confirmation_token()
         send_email(user.email, 'Confirm Your Account',
                    'auth/email/confirm', user=user, token=token)
-        flash('A confirmation email has been sent to you by email.')
+        flash('一封验证邮件已发送到你的邮箱账号')
         return redirect(url_for('main.index'))
     return render_template('auth/register.html', form=form)
 
@@ -54,9 +54,9 @@ def confirm(token):
     if current_user.confirmed:
         return redirect(url_for('main.index'))
     if current_user.confirm(token):
-        flash('You have confirmed your account. Thanks!')
+        flash('您已验证的邮箱账号，谢谢！')
     else:
-        flash('The confirmation link is invalid or has expired.')
+        flash('验证链接无效或已过期')
     return redirect(url_for('main.index'))
 
 
@@ -84,7 +84,7 @@ def resend_confirmation():
     token = current_user.generate_confirmation_token()
     send_email(current_user.email, 'Confirm Your Account',
                'auth/email/confirm', user=current_user, token=token)
-    flash('A new confirmation email has been sent to you by email.')
+    flash('一封新的验证邮件已发送到你的邮箱账号')
     return redirect(url_for('main.index'))
 
 
@@ -97,7 +97,7 @@ def change_password():
         if current_user.verify_password(form.old_password.data):
             current_user.password = form.password.data
             db.session.add(current_user)
-            flash('Your password has been updated.')
+            flash('密码更新成功')
             return redirect(url_for('main.index'))
         else:
             flash('Invalid password.')
@@ -134,7 +134,7 @@ def password_reset(token):
         if user is None:
             return redirect(url_for('main.index'))
         if user.reset_password(token, form.password.data):
-            flash('Your password has been updated.')
+            flash('密码更新成功')
             return redirect(url_for('auth.login'))
         else:
             return redirect(url_for('main.index'))

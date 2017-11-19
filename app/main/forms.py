@@ -6,8 +6,8 @@ from flask_pagedown.fields import PageDownField
 
 
 class NameForm(Form):
-    name = StringField('What is your name?', validators=[Required()])
-    submit = SubmitField('Submit')
+    name = StringField('名字？', validators=[Required()])
+    submit = SubmitField('提交')
 
 
 class EditProfileForm(Form):
@@ -15,28 +15,28 @@ class EditProfileForm(Form):
         EditProfileForm Class
         用户级资料编辑表单
     """
-    name = StringField('Real name', validators=[Length(0, 64)])
-    location = StringField('Location', validators=[Length(0, 64)])
-    about_me = TextAreaField('About me')
-    submit = SubmitField('Submit')
+    name = StringField('真实姓名', validators=[Length(0, 64)])
+    location = StringField('位置', validators=[Length(0, 64)])
+    about_me = TextAreaField('关于我')
+    submit = SubmitField('提交')
 
 
 class EditProfileAdminForm(Form):
     """
         管理员资料编辑表单
     """
-    email = StringField('Email', validators=[Required(), Length(1, 64),
+    email = StringField('邮箱', validators=[Required(), Length(1, 64),
                                              Email()])
-    username = StringField('Username', validators=[
+    username = StringField('用户名', validators=[
         Required(), Length(1, 64), Regexp('^[A-Za-z][A-Za-z0-9_.]*$', 0,
                                           'Username must have only letters, '
                                           'numbers, dots or underscores')])
     confirmed = BooleanField('Confirmed')
-    role = SelectField('Role', coerce=int)
-    name = StringField('Real name', validators=[Length(0, 64)])
-    location = StringField('Location', validators=[Length(0, 64)])
-    about_me = TextAreaField('About me')
-    submit = SubmitField('Submit')
+    role = SelectField('权限', coerce=int)
+    name = StringField('真实姓名', validators=[Length(0, 64)])
+    location = StringField('位置', validators=[Length(0, 64)])
+    about_me = TextAreaField('关于我')
+    submit = SubmitField('提交')
 
     def __init__(self, user, *args, **kwargs):
         """
@@ -53,22 +53,22 @@ class EditProfileAdminForm(Form):
     def validate_email(self, field):
         if field.data != self.user.email and \
                 User.query.filter_by(email=field.data).first():
-            raise ValidationError('Email already registered.')
+            raise ValidationError('邮箱已被注册')
 
     def validate_username(self, field):
         if field.data != self.user.username and \
                 User.query.filter_by(username=field.data).first():
-            raise ValidationError('Username already in use.')
+            raise ValidationError('用户名已存在')
 
 
 class PostForm(Form):
     """
     发布博客文章表单
     """
-    body = PageDownField("What's on your mind?", validators=[Required()])
-    submit = SubmitField('Submit')
+    body = PageDownField("在想什么呢？", validators=[Required()])
+    submit = SubmitField('提交')
 
 
 class CommentForm(Form):
-    body = StringField('Enter your comment', validators=[Required()])
-    submit = SubmitField('Submit')
+    body = StringField('输入评论', validators=[Required()])
+    submit = SubmitField('提交')
