@@ -1,7 +1,7 @@
-<p>Dear {{ user.username }},</p>
-<p>Welcome to <b>Weisky</b>!</p>
-<p>To confirm your account please <a href="{{ url_for('auth.confirm', token=token, _external=True) }}">click here</a>.</p>
-<p>Alternatively, you can paste the following link in your browser's address bar:</p>
+<p>亲爱的 {{ user.username }},</p>
+<p>欢迎来到 <b>Weisky</b>!</p>
+<p>确认你的账号请<a href="{{ url_for('auth.confirm', token=token, _external=True) }}">点这里</a>.</p>
+<p>或者复制以下链接到浏览器地址栏:</p>
 <p>{{ url_for('auth.confirm', token=token, _external=True) }}</p>
 <p>Sincerely,</p>
 <p>kangkang</p>

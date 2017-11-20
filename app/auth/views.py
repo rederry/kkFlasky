@@ -118,8 +118,7 @@ def password_reset_request():
                        'auth/email/reset_password',
                        user=user, token=token,
                        next=request.args.get('next'))
-        flash('An email with instructions to reset your password has been '
-              'sent to you.')
+        flash('重置密码的邮件已发送')
         return redirect(url_for('auth.login'))
     return render_template('auth/reset_password.html', form=form)
 

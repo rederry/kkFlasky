@@ -139,7 +139,7 @@ def post(id):
                           post=post,
                           author=current_user._get_current_object())  # 真的的User对象
         db.session.add(comment)
-        flash('Your comment has been published.')
+        flash('评论已发布')
         return redirect(url_for('.post', id=post.id, page=-1))  # 重新回到此路由,并刷新评论
     page = request.args.get('page', 1, type=int)
     if page == -1:  # 当page是-1时 计算评论的总量和总页数,得到真正要显示的页数
@@ -168,7 +168,7 @@ def edit(id):
     if form.validate_on_submit() and current_user:
         post.body = form.body.data
         db.session.add(post)
-        flash('The post has been updated.')
+        flash('文章已更新')
         return redirect(url_for('.post', id=post.id))
     form.body.data = post.body
     return render_template('edit_post.html', form=form)
@@ -224,13 +224,13 @@ def follow(username):
 
     user = User.query.filter_by(username=username).first()
     if user is None:
-        flash('Invalid user.')
+        flash('无效用户')
         return redirect(url_for('.index'))
     if current_user.is_following(user):
-        flash('You are already following this user.')
+        flash('你已经关注他了')
         return redirect(url_for('.user', username=username))
     current_user.follow(user)
-    flash('You are now following %s.' % username)
+    flash('正在关注 %s.' % username)
     return redirect(url_for('.user', username=username))
 
 
@@ -240,13 +240,13 @@ def follow(username):
 def unfollow(username):
     user = User.query.filter_by(username=username).first()
     if user is None:
-        flash('Invalid user.')
+        flash('无效用户')
         return redirect(url_for('.index'))
     if not current_user.is_following(user):
-        flash('You are not following this user.')
+        flash('你没有关注这个用户')
         return redirect(url_for('.user', username=username))
     current_user.unfollow(user)
-    flash('You are not following %s anymore.' % username)
+    flash('你不再关注%s了' % username)
     return redirect(url_for('.user', username=username))
 
 
@@ -254,7 +254,7 @@ def unfollow(username):
 def followers(username):
     user = User.query.filter_by(username=username).first()
     if user is None:
-        flash('Invalid user.')
+        flash('无效用户')
         return redirect(url_for('.index'))
     page = request.args.get('page', 1, type=int)
     pagination = user.followers.paginate(
@@ -271,7 +271,7 @@ def followers(username):
 def followed_by(username):
     user = User.query.filter_by(username=username).first()
     if user is None:
-        flash('Invalid user.')
+        flash('无效用户')
         return redirect(url_for('.index'))
     page = request.args.get('page', 1, type=int)
     pagination = user.followed.paginate(

@@ -1,8 +1,8 @@
-Dear {{ user.username }},
+亲爱的 {{ user.username }},
 
-Welcome to Flasky!
+欢迎来到 Weisky!
 
-To confirm your account please click on the following link:
+确认你的账号请点这里:
 
 {{ url_for('auth.confirm', token=token, _external=True) }}
 
