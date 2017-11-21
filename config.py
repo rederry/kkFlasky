@@ -12,7 +12,7 @@ class Config:
     MAIL_USE_SSL = True
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
-    FLASKY_MAIL_SUBJECT_PREFIX = '[Flasky]'
+    FLASKY_MAIL_SUBJECT_PREFIX = '[Weisky]'
     FLASKY_MAIL_SENDER = 'rederry@sina.com'
     FLASKY_ADMIN = 'rederry@sina.com'
     FLASKY_POSTS_PER_PAGE = 20
